@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Audit Trail - SecureMed</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+.header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 28px; font-weight: 700; }
+.header p { opacity: 0.9; font-size: 14px; margin-top: 4px; }
+.container { max-width: 1400px; margin: 24px auto; padding: 0 16px; }
+.btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 14px; }
+.btn-primary { background: #667eea; color: white; }
+.btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+
+.actions { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+
+.filters { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+.filters h3 { font-size: 16px; margin-bottom: 16px; color: #1f2937; }
+.filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 6px; }
+.form-group select, .form-group input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.stat-label { color: #6b7280; font-size: 14px; margin-bottom: 8px; }
+.stat-number { font-size: 32px; font-weight: 700; color: #1f2937; }
+
+.card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+.card h2 { font-size: 20px; color: #1f2937; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
+
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th { background: #f9fafb; text-align: left; padding: 12px; font-size: 13px; font-weight: 600; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+.log-table td { padding: 12px; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+.log-table tr:hover { background: #f9fafb; }
+
+.badge { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; }
+.badge-login { background: #d1fae5; color: #065f46; }
+.badge-logout { background: #fee2e2; color: #991b1b; }
+.badge-patient { background: #dbeafe; color: #1e40af; }
+.badge-assignment { background: #e0e7ff; color: #3730a3; }
+.badge-violation { background: #fef3c7; color: #92400e; }
+.badge-failed { background: #fed7aa; color: #9a3412; }
+.badge-default { background: #f3f4f6; color: #374151; }
+
+.details-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.details-cell:hover { text-decoration: underline; }
+
+.loading, .empty-state { text-align: center; padding: 40px; color: #6b7280; }
+
+/* Loading Spinner Styles */
+.spinner-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; }
+.spinner { width: 50px; height: 50px; border: 4px solid #e5e7eb; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.spinner-text { color: #6b7280; font-size: 16px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-content">
+    <div>
+      <h1>Activity Audit Trail</h1>
+      <p>Monitor all user activities and system events</p>
+    </div>
+    <button class="btn btn-danger" onclick="window.location.href='/logout'">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="actions">
+    <button class="btn btn-primary" onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+    <button class="btn btn-primary" onclick="loadLogs()">Refresh</button>
+  </div>
+
+  <div class="filters">
+    <h3>Filter Logs</h3>
+    <div class="filter-row">
+      <div class="form-group">
+        <label for="filterUser">User:</label>
+        <select id="filterUser" onchange="loadLogs()">
+          <option value="">All Users</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="filterAction">Action Type:</label>
+        <select id="filterAction" onchange="loadLogs()">
+          <option value="">All Actions</option>
+          <option value="LOGIN">Login</option>
+          <option value="LOGIN_FAILED">Failed Login</option>
+          <option value="LOGOUT">Logout</option>
+          <option value="PATIENT_ADDED">Patient Added</option>
+          <option value="ASSIGNMENT_COMPLETED">Assignment Completed</option>
+          <option value="ASSIGNMENT_FAILED">Assignment Failed</option>
+          <option value="VIOLATION_ACKNOWLEDGED">Violation Acknowledged</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="filterLimit">Show:</label>
+        <select id="filterLimit" onchange="loadLogs()">
+          <option value="50">Last 50</option>
+          <option value="100" selected>Last 100</option>
+          <option value="200">Last 200</option>
+          <option value="500">Last 500</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total Events</div>
+      <div class="stat-number" id="totalEvents">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Logins Today</div>
+      <div class="stat-number" id="loginsToday">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Failed Logins</div>
+      <div class="stat-number" id="failedLogins">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Users</div>
+      <div class="stat-number" id="activeUsers">-</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Activity Logs</h2>
+    <div id="logsContainer">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="spinner-text">Loading activity logs...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allLogs = [];
+
+async function loadLogs() {
+  try {
+    const username = document.getElementById('filterUser').value;
+    const actionType = document.getElementById('filterAction').value;
+    const limit = document.getElementById('filterLimit').value;
+
+    const params = new URLSearchParams();
+    if (username) params.append('username', username);
+    if (actionType) params.append('action_type', actionType);
+    if (limit) params.append('limit', limit);
+
+    const response = await fetch(`/api/audit_trail?${params}`);
+    if (!response.ok) {
+      throw new Error('Failed to load activity logs');
+    }
+
+    allLogs = await response.json();
+    renderLogs();
+    updateStats();
+    await loadUserList();
+  } catch (error) {
+    console.error('Error loading logs:', error);
+    document.getElementById('logsContainer').innerHTML =
+      '<div class="empty-state">Error loading logs: ' + error.message + '</div>';
+  }
+}
+
+function renderLogs() {
+  const container = document.getElementById('logsContainer');
+
+  if (allLogs.length === 0) {
+    container.innerHTML = '<div class="empty-state">No activity logs found</div>';
+    return;
+  }
+
+  let html = '<table class="log-table"><thead><tr>';
+  html += '<th>Timestamp</th>';
+  html += '<th>User</th>';
+  html += '<th>Action</th>';
+  html += '<th>Description</th>';
+  html += '<th>Details</th>';
+  html += '<th>IP Address</th>';
+  html += '</tr></thead><tbody>';
+
+  allLogs.forEach(log => {
+    const badgeClass = getBadgeClass(log.action_type);
+    html += '<tr>';
+    html += `<td>${log.timestamp}</td>`;
+    html += `<td><strong>${log.username}</strong></td>`;
+    html += `<td><span class="badge ${badgeClass}">${log.action_type}</span></td>`;
+    html += `<td>${log.description}</td>`;
+    html += `<td class="details-cell" title="${log.details || 'N/A'}">${log.details || 'N/A'}</td>`;
+    html += `<td>${log.ip_address}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function getBadgeClass(actionType) {
+  if (actionType === 'LOGIN') return 'badge-login';
+  if (actionType === 'LOGIN_FAILED') return 'badge-failed';
+  if (actionType === 'LOGOUT') return 'badge-logout';
+  if (actionType === 'PATIENT_ADDED') return 'badge-patient';
+  if (actionType === 'ASSIGNMENT_COMPLETED') return 'badge-assignment';
+  if (actionType === 'ASSIGNMENT_FAILED') return 'badge-failed';
+  if (actionType === 'VIOLATION_ACKNOWLEDGED') return 'badge-violation';
+  return 'badge-default';
+}
+
+function updateStats() {
+  const total = allLogs.length;
+
+  // Get today's date
+  const today = new Date().toISOString().slice(0, 10);
+  const loginsToday = allLogs.filter(l => l.action_type === 'LOGIN' && l.timestamp.startsWith(today)).length;
+  const failedLogins = allLogs.filter(l => l.action_type === 'LOGIN_FAILED').length;
+
+  // Get unique users
+  const uniqueUsers = new Set(allLogs.map(l => l.username)).size;
+
+  document.getElementById('totalEvents').textContent = total;
+  document.getElementById('loginsToday').textContent = loginsToday;
+  document.getElementById('failedLogins').textContent = failedLogins;
+  document.getElementById('activeUsers').textContent = uniqueUsers;
+}
+
+async function loadUserList() {
+  // Populate user filter dropdown with unique users from logs
+  const uniqueUsers = [...new Set(allLogs.map(l => l.username))].sort();
+  const userSelect = document.getElementById('filterUser');
+  const currentValue = userSelect.value;
+
+  userSelect.innerHTML = '<option value="">All Users</option>';
+  uniqueUsers.forEach(user => {
+    const option = document.createElement('option');
+    option.value = user;
+    option.textContent = user;
+    if (user === currentValue) option.selected = true;
+    userSelect.appendChild(option);
+  });
+}
+
+// Load logs on page load
+loadLogs();
+</script>
+</body>
+</html>
