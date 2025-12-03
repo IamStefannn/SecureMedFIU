@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Directory - SecureMed</title>
+<style>
+body{font-family:Arial;background:#f7f8fc;padding:20px;margin:0}
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:24px;border-radius:12px;margin-bottom:20px}
+.header h1{margin:0;font-size:28px}
+button{padding:10px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;margin:4px;transition:all 0.3s}
+.btn-primary{background:#667eea;color:white}
+.btn-primary:hover{background:#5568d3}
+.card{background:white;padding:24px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.08);margin-bottom:20px}
+.card h2{margin-top:0;color:#374151;border-bottom:2px solid #e5e7eb;padding-bottom:12px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:12px;border-bottom:1px solid #e5e7eb;text-align:left}
+th{background:#f9fafb;color:#374151;font-weight:bold}
+tr:hover{background:#f9fafb}
+.badge{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:bold;text-transform:uppercase}
+.badge-fax{background:#dbeafe;color:#1e40af}
+.badge-email{background:#dcfce7;color:#166534}
+.badge-transfer{background:#fef3c7;color:#92400e}
+.badge-courier{background:#fce7f3;color:#9f1239}
+.badge-secure_msg{background:#e0e7ff;color:#3730a3}
+.search-box{margin:16px 0;padding:10px;border:2px solid #e5e7eb;border-radius:8px;width:100%;font-size:14px}
+.spinner-container{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+.spinner{width:50px;height:50px;border:4px solid #e5e7eb;border-top:4px solid #667eea;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.spinner-text{color:#6b7280;font-size:16px}
+</style>
+</head><body>
+
+<div class="header">
+  <h1>📖 Approved PHI Destinations Directory</h1>
+  <p style="margin:8px 0 0 0;opacity:0.9">Authorized locations for transmitting protected health information</p>
+</div>
+
+<div style="margin-bottom:16px">
+  <a href="/user_dashboard"><button class="btn-primary">← Back to Dashboard</button></a>
+  <button class="btn-primary" onclick="loadDirectory()">🔄 Refresh</button>
+</div>
+
+<div class="card">
+  <h2>📠 Fax Numbers</h2>
+  <input type="text" class="search-box" id="search-fax" placeholder="Search fax entries..." onkeyup="filterTable('fax-table', 'search-fax')">
+  <table id="fax-table">
+    <thead><tr><th>Name</th><th>Fax Number</th><th>Department</th><th>Notes</th></tr></thead>
+    <tbody><tr><td colspan="4"><div class="spinner-container"><div class="spinner"></div><div class="spinner-text">Loading...</div></div></td></tr></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>📧 Email Addresses</h2>
+  <input type="text" class="search-box" id="search-email" placeholder="Search email entries..." onkeyup="filterTable('email-table', 'search-email')">
+  <table id="email-table">
+    <thead><tr><th>Name</th><th>Email Address</th><th>Department</th><th>Notes</th></tr></thead>
+    <tbody><tr><td colspan="4"><div class="spinner-container"><div class="spinner"></div><div class="spinner-text">Loading...</div></div></td></tr></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>🏥 Transfer Locations</h2>
+  <input type="text" class="search-box" id="search-transfer" placeholder="Search locations..." onkeyup="filterTable('transfer-table', 'search-transfer')">
+  <table id="transfer-table">
+    <thead><tr><th>Location Name</th><th>Full Address</th><th>Department</th><th>Notes</th></tr></thead>
+    <tbody><tr><td colspan="4"><div class="spinner-container"><div class="spinner"></div><div class="spinner-text">Loading...</div></div></td></tr></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>📦 Physical Delivery (Courier)</h2>
+  <input type="text" class="search-box" id="search-courier" placeholder="Search courier destinations..." onkeyup="filterTable('courier-table', 'search-courier')">
+  <table id="courier-table">
+    <thead><tr><th>Office Name</th><th>Delivery Location</th><th>Department</th><th>Notes</th></tr></thead>
+    <tbody><tr><td colspan="4"><div class="spinner-container"><div class="spinner"></div><div class="spinner-text">Loading...</div></div></td></tr></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>💬 Secure Messaging</h2>
+  <input type="text" class="search-box" id="search-secure" placeholder="Search secure contacts..." onkeyup="filterTable('secure-table', 'search-secure')">
+  <table id="secure-table">
+    <thead><tr><th>Contact Name</th><th>Secure Message ID</th><th>Department</th><th>Notes</th></tr></thead>
+    <tbody><tr><td colspan="4"><div class="spinner-container"><div class="spinner"></div><div class="spinner-text">Loading...</div></div></td></tr></tbody>
+  </table>
+</div>
+
+<script>
+async function loadDirectory(){
+  try {
+    const r = await fetch('/api/directory');
+    const data = await r.json();
+    
+    // Group by type
+    const grouped = {
+      fax: data.filter(d => d.type === 'Fax Approved' || d.type === 'fax'),
+      email: data.filter(d => d.type === 'Email Secure' || d.type === 'email'),
+      transfer: data.filter(d => d.type === 'Hospital Transfer' || d.type === 'transfer'),
+      courier: data.filter(d => d.type === 'Courier Service' || d.type === 'courier'),
+      secure_msg: data.filter(d => d.type === 'Secure Messaging' || d.type === 'secure_msg')
+    };
+    
+    // Populate tables
+    populateTable('fax-table', grouped.fax);
+    populateTable('email-table', grouped.email);
+    populateTable('transfer-table', grouped.transfer);
+    populateTable('courier-table', grouped.courier);
+    populateTable('secure-table', grouped.secure_msg);
+    
+  } catch(e) {
+    alert('Error loading directory: ' + e);
+  }
+}
+
+function populateTable(tableId, items){
+  const tb = document.querySelector('#' + tableId + ' tbody');
+  
+  if(!items.length){
+    tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#6b7280">No entries</td></tr>';
+    return;
+  }
+  
+  tb.innerHTML = '';
+  items.forEach(item => {
+    tb.innerHTML += `<tr>
+      <td><strong>${item.name}</strong></td>
+      <td><code style="background:#f3f4f6;padding:4px 8px;border-radius:4px">${item.value}</code></td>
+      <td>${item.department}</td>
+      <td>${item.notes}</td>
+    </tr>`;
+  });
+}
+
+function filterTable(tableId, searchId){
+  const input = document.getElementById(searchId);
+  const filter = input.value.toUpperCase();
+  const table = document.getElementById(tableId);
+  const tr = table.getElementsByTagName("tr");
+  
+  for (let i = 1; i < tr.length; i++) {
+    let found = false;
+    const td = tr[i].getElementsByTagName("td");
+    for (let j = 0; j < td.length; j++) {
+      if (td[j]) {
+        if (td[j].innerHTML.toUpperCase().indexOf(filter) > -1) {
+          found = true;
+          break;
+        }
+      }
+    }
+    tr[i].style.display = found ? "" : "none";
+  }
+}
+
+// Auto-load
+loadDirectory();
+</script>
+</body></html>

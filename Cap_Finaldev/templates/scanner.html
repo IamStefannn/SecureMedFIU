@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Vulnerability Scanner</title>
+<style>body{font-family:Arial,sans-serif;background:#eef0ff;padding:20px;}button{padding:8px 12px;margin:5px;border:none;border-radius:8px;background:#667eea;color:white;cursor:pointer;}pre{background:white;padding:16px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.08);}</style>
+</head>
+<body>
+<h1>🛡️ Vulnerability Scanner</h1>
+<div style="margin-bottom:10px;">
+  <a href="/dashboard"><button>⬅ Back to Dashboard</button></a>
+  <button onclick="runScan()">Run Scan</button>
+</div>
+<pre id="output">Click "Run Scan" to simulate a scan...</pre>
+<script>
+async function runScan(){
+  document.getElementById('output').textContent='Scanning...';
+  const r=await fetch('/api/scanner/run',{method:'POST'});
+  const d=await r.json();
+  document.getElementById('output').textContent=JSON.stringify(d,null,2);
+}
+</script>
+</body>
+</html>
