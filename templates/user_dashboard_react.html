@@ -886,6 +886,11 @@ tr:last-child td:last-child { border-bottom-right-radius: 8px; }
 <body>
 <div id="root"></div>
 
+<script type="text/babel">
+// Get username from Flask template
+const FLASK_USERNAME = "{{ username }}";
+</script>
+
 {% raw %}
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
@@ -1732,14 +1737,13 @@ const NurseDashboard = () => {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
-  const [username, setUsername] = useState('Nurse');
+  const [username, setUsername] = useState(FLASK_USERNAME);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [activeTraining, setActiveTraining] = useState(null);
   const [complianceScore, setComplianceScore] = useState(0);
   const [trainingCompleted, setTrainingCompleted] = useState(0);
-  const currentUsername = "{{ username }}";  // Get username from backend
   const [completedModules, setCompletedModules] = useState([]);
 
   // Load assignments

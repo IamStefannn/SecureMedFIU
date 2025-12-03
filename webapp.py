@@ -975,7 +975,7 @@ def generate_signed_pdf():
     from reportlab.lib.enums import TA_CENTER
     import io
 
-    username = session.get("username")
+    username = session.get("user")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
